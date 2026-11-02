@@ -25,7 +25,7 @@ for (const file of ['index.html','style.css','package-lock.json',...(await readd
 }
 const version = versionHash.digest('hex').slice(0,16);
 await build({ entryPoints: { app: 'src/app.js', worker: 'src/worker.js' }, outdir: 'dist', bundle: true,
-  minify: true, sourcemap: false, platform: 'browser', format: 'esm', target: ['chrome120', 'edge120'],
+  splitting: true, chunkNames: 'shared-[hash]', minify: true, sourcemap: false, platform: 'browser', format: 'esm', target: ['chrome120', 'edge120'],
   legalComments: 'external', define: { 'process.env.NODE_ENV': '"production"', '__APP_VERSION__':JSON.stringify(version) } });
 await copyFile('style.css','dist/style.css');
 for (const file of ['index.html','privacy.html']) {
@@ -34,6 +34,9 @@ for (const file of ['index.html','privacy.html']) {
 }
 await writeFile('dist/.nojekyll', '');
 await copyFile('README.md', 'dist/DEPLOYMENT.md');
+await copyFile('AI-REVIEW.md', 'dist/AI-REVIEW.md');
+await mkdir('dist/samples', {recursive:true});
+for (const file of ['ai_review_fixture.pdf','ai_review_fixture.png','ai_info_fixture.xlsx']) await copyFile('../samples/'+file,'dist/samples/'+file);
 await mkdir('dist/licenses', { recursive: true });
 for (const [label, dir] of Object.entries({
   pdfjs: 'node_modules/pdfjs-dist', pdf_cmaps: 'node_modules/pdfjs-dist/cmaps', pdf_fonts: 'node_modules/pdfjs-dist/standard_fonts',
@@ -43,5 +46,5 @@ for (const [label, dir] of Object.entries({
   if (file.isFile() && /^(licen[cs]e|notice)/i.test(file.name)) await copyFile(path.join(dir, file.name), `dist/licenses/${label}-${file.name}`);
 }
 // 코드/리소스는 함께 배포하며 시험 파일이나 결과는 포함하지 않는다.
-console.log(`정적 웹 빌드 완료: web/dist · ${version} (외부 CDN/서버 API 불필요)`);
+console.log(`정적 웹 빌드 완료: web/dist · ${version} (문서 대조는 로컬 / Gemini 검토는 명시적 선택 시 Google API)`);
 

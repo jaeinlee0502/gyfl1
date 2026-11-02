@@ -4,16 +4,44 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; worker-src 'self'; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>시험출제 통합점검기 · 내 PC에서 안전하게</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; worker-src 'self'; connect-src https://generativelanguage.googleapis.com; font-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>시험출제 통합점검기 · Gemini 문항 검토</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./style.css">
   <script src="./app.js" type="module"></script>
 </head>
 <body>
-  <header class="masthead"><a href="./" class="brand"><span class="brand-mark" aria-hidden="true">✓</span>시험출제 통합점검기<span class="version">1단계 MVP · 웹</span></a><a href="./privacy.html" target="_blank" rel="noopener noreferrer">처리 방식과 지원 범위 ↗</a></header>
+  <header class="masthead"><a href="./" class="brand"><span class="brand-mark" aria-hidden="true">✓</span>시험출제 통합점검기<span class="version">본인 키로 AI 검토 · 웹</span></a><a href="./privacy.html" target="_blank" rel="noopener noreferrer">처리 방식과 지원 범위 ↗</a></header>
   <main>
-    <section class="intro"><div><p class="eyebrow">선생님의 판단을 돕는 문서 대조</p><h1>시험 전 마지막 확인,<br>선생님의 PC 안에서.</h1><p class="lede">원안지와 문항정보표의 번호·정답·배점을 나란히 살펴보세요.<br>문서는 서버로 전송하지 않고, 이 브라우저 안에서만 처리합니다.</p></div><aside class="privacy-card"><span class="pill">파일 전송 없음</span><h2>파일 선택 ≠ 서버 업로드</h2><p>회원가입도, 문서 저장 서버도 없습니다.<br>원본을 수정하지 않으며 결과는<br>직접 보고서로 내려받을 수 있습니다.</p><p class="small">학교에서 허용한 PC·브라우저와 배포 주소를 이용해 주세요.</p></aside></section>
+    <section class="intro"><div><p class="eyebrow">직접 풀어보고, 원문과 다시 확인하는 검토</p><h1>정답 대조를 넘어,<br>문항의 오류 후보까지.</h1><p class="lede">Gemini가 PDF·이미지의 문항을 풀고 발문·선지·자료를 검토합니다.<br>풀이와 근거를 보고 최종 판단은 선생님이 내려 주세요.</p></div><aside class="privacy-card"><span class="pill">본인 API 키 사용</span><h2>AI 검토는 Google로 전송</h2><p>동의하고 검토를 시작할 때만<br>선택한 파일을 Gemini로 보냅니다.<br>API 키는 이 탭에서만 사용합니다.</p><p class="small">문서 대조 모드는 PC 안에서 처리합니다. 원본 문서는 자동 수정하지 않습니다.</p></aside></section>
+    <div class="mode-tabs" role="tablist" aria-label="점검 방식"><button id="mode-ai" role="tab" aria-selected="true" aria-controls="ai-mode" class="active">Gemini AI 문항 검토</button><button id="mode-compare" role="tab" aria-selected="false" aria-controls="compare-mode">문서 대조 · PC에서 처리</button></div>
+    <div id="ai-mode" role="tabpanel" aria-labelledby="mode-ai">
+      <section class="panel" aria-labelledby="ai-title">
+        <div class="section-head"><h2 id="ai-title"><span class="step">01</span> 본인 Gemini 연결</h2><a class="small external-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio에서 키 발급 ↗</a></div>
+        <div class="ai-settings">
+          <label for="ai-key">본인 API 키<input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="이 탭에서만 사용 · 저장 안 함" maxlength="256"></label>
+          <button id="ai-models" class="quiet">사용 가능한 모델 불러오기</button>
+          <label for="ai-model">검토 모델<select id="ai-model" disabled><option value="">키 입력 후 목록을 불러오세요</option></select></label>
+          <button id="ai-forget" class="quiet">키 지우기</button>
+        </div>
+        <p class="format-hint">모델 목록은 버튼을 누를 때 Google에서 조회합니다(문서 전송 없음). 모델별 요금·할당량·이용 가능 지역은 본인 Google 프로젝트에 따릅니다. 공개 사이트에 공용 키는 없으며, 로그인으로 접속자를 제한하는 사이트는 아닙니다.</p>
+      </section>
+      <section class="panel ai-input-panel" aria-labelledby="ai-document-title">
+        <div class="section-head"><h2 id="ai-document-title"><span class="step">02</span> 검토할 원안지를 준비하세요</h2><span class="small">PDF · PNG · JPG · WEBP / 10MB · 30쪽 · 40문항 이하</span></div>
+        <p class="format-hint sample-links">처음에는 가상 자료로 연습하세요: <a href="./samples/ai_review_fixture.pdf" download>가상 원안지 PDF 내려받기</a> · <a href="./samples/ai_info_fixture.xlsx" download>가상 문항정보표 내려받기</a></p>
+        <div class="file-grid">
+          <div id="ai-dropzone" class="file-card" role="region" aria-label="AI 검토 원안지 파일 놓기"><span class="file-role">AI가 읽을 원안지</span><p>PDF 또는 이미지 파일 1개를 끌어 놓으세요.</p><label for="ai-file" class="file-pick">또는 PC에서 파일 선택</label><input id="ai-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"><output id="ai-file-name">선택한 파일 없음</output><p>HWP는 한글에서 PDF로 저장해 주세요. 그림·빈칸까지 확인할 수 있도록 완전한 문항을 넣으세요.</p></div>
+          <div id="ai-info-dropzone" class="file-card" role="region" aria-label="AI 대조용 문항정보표 파일 놓기"><span class="file-role">문항정보표 · 선택 사항</span><p>AI 풀이가 끝난 뒤 이 PC에서 정답을 대조합니다.</p><label for="ai-info" class="file-pick">문항정보표 선택</label><input id="ai-info" type="file" accept=".xlsx,.docx,.hwp,.hwpx,.pdf"><output id="ai-info-name">미선택 · 원안지만으로 AI 검토 가능</output><button id="ai-info-clear" class="quiet small">정보표 제외</button><p id="ai-reference-status">별도 정보표와 그 정답은 Google로 보내지 않습니다.</p></div>
+        </div>
+        <div class="ai-context"><label for="ai-subject">과목 <input id="ai-subject" maxlength="80" placeholder="예: 동아시아사"></label><label for="ai-grade">학년 <select id="ai-grade"><option value="">미지정</option><option>고등학교 1학년</option><option>고등학교 2학년</option><option>고등학교 3학년</option></select></label><label for="ai-count">검토할 문항 수 <input id="ai-count" type="number" min="1" max="40" step="1" placeholder="선택 사항"></label></div>
+        <details id="ai-preview" class="ai-preview" hidden open><summary>전송할 파일 미리보기 · 원본 전체가 전송됩니다</summary><div class="preview-tools"><button id="ai-prev" class="quiet">이전 쪽</button><span id="ai-page-label"></span><button id="ai-next" class="quiet">다음 쪽</button></div><div class="preview-scroll"><canvas id="ai-canvas" aria-label="선택한 원안지 미리보기"></canvas></div><p class="format-hint">파일에 포함된 표지·학교명·이름·숨은 텍스트 등을 자동 삭제하지 않습니다. 필요하면 먼저 제거한 복사본을 선택하세요. 미리보기 품질과 Gemini의 판독 결과는 다를 수 있습니다.</p></details>
+        <div class="ai-consent"><label for="ai-consent"><input id="ai-consent" type="checkbox"> 선택한 원안지 전체와 과목·학년, 1차 검토 결과를 Google Gemini로 전송하여 검토하는 데 동의합니다.</label><p>버튼 한 번에 독립 풀이와 재검토로 최대 2회 API를 호출합니다. 요금이 발생할 수 있고 자동 재시도는 하지 않습니다. Google의 데이터 처리·보관·학습 이용 조건은 이용 요금제와 약관에 따릅니다. 이 앱은 무보관을 보장하지 않습니다. 원안지 안에 이미 정답이 있으면 AI도 볼 수 있습니다.</p></div>
+        <div class="ai-actions"><button id="ai-clear" class="quiet">파일·결과 지우기</button><button id="ai-cancel" class="quiet" hidden>검토 중단</button><button id="ai-run" class="primary" disabled>Gemini AI 검토 시작 →</button></div>
+      </section>
+      <div id="ai-message" class="notice" role="status" aria-live="polite">API 키와 모델, 원안지를 준비하고 전송 동의를 선택하세요.</div>
+      <section id="ai-results" class="panel results" hidden aria-labelledby="ai-result-title"><div class="section-head"><div><p class="eyebrow">AI 검토 의견 · 정답 보장 아님</p><h2 id="ai-result-title">풀이와 원문 근거를 확인하세요</h2></div><button id="ai-export" class="primary">AI 검토 XLSX 내려받기</button></div><p id="ai-summary" class="scope-summary"></p><p id="ai-warning" class="ai-warning" hidden></p><div id="ai-cards"></div></section>
+    </div>
+    <div id="compare-mode" role="tabpanel" aria-labelledby="mode-compare" hidden>
     <section class="panel" aria-labelledby="input-title"><div class="section-head"><h2 id="input-title"><span class="step">01</span> 대조할 두 문서를 선택하세요</h2><span class="small">XLSX · DOCX · HWP · HWPX · 텍스트 PDF / 각 50MB 이하</span></div>
       <div class="file-grid">
         <div class="file-card" id="exam-dropzone" data-drop-index="0" role="region" aria-label="시험 원안지 파일 놓기"><span class="file-role">시험 원안지</span><p>여기에 원안지 파일 1개를 끌어 놓으세요.</p><label for="exam" class="file-pick">또는 PC에서 파일 선택</label><input type="file" id="exam" accept=".xlsx,.docx,.hwp,.hwpx,.pdf"><output id="exam-name">선택한 파일 없음</output></div>
@@ -33,9 +61,10 @@
       <div id="view-exam" role="tabpanel" aria-labelledby="tab-exam" hidden><div class="table-scroll"><table><thead><tr><th>문항</th><th>정답</th><th>배점</th><th>추출 수준</th><th>원본 위치 · 읽은 원문</th></tr></thead><tbody id="exam-body"></tbody></table></div></div>
       <div id="view-info" role="tabpanel" aria-labelledby="tab-info" hidden><div class="table-scroll"><table><thead><tr><th>문항</th><th>정답</th><th>배점</th><th>추출 수준</th><th>원본 위치 · 읽은 원문</th></tr></thead><tbody id="info-body"></tbody></table></div></div>
     </section>
-    <section class="scope"><h2>결과는 교사의 판단을 위한 확인 목록입니다.</h2><p>추출이 불확실하면 ‘확인 필요’로 표시합니다. ‘오류’는 불일치 후보이며 ‘정상’도 출제 승인을 뜻하지 않습니다.<br>문항 내용·역사적 사실·정답의 타당성 및 AI 검증은 포함하지 않습니다. 원본 문서를 직접 확인해 주세요.</p></section>
+    </div>
+    <section class="scope"><h2>결과는 교사의 판단을 위한 확인 목록입니다.</h2><p>AI는 문항을 잘못 읽거나 틀리게 풀 수 있습니다. 오류 후보·확인 필요·이상 징후 미발견 모두 검토 의견이며 출제 승인이 아닙니다.<br>문서 대조 모드는 번호·정답·배점만 비교하며, AI를 호출하지 않습니다. 두 모드 모두 원본 문서를 직접 확인해 주세요.</p></section>
   </main>
-  <footer><span>문서를 서버로 전송·저장하지 않습니다.</span><span>페이지를 처음 여는 데는 인터넷이 필요합니다. 준비 완료 후에는 연결 없이 점검할 수 있습니다.</span></footer>
+  <footer><span>문서 대조: PC 안에서 처리 · AI 검토: 동의 후 Google로 전송</span><span>AI 검토는 인터넷과 본인 API 키가 필요합니다. 앱은 키·문서를 브라우저 저장소에 저장하지 않습니다.</span></footer>
   <noscript>파일을 브라우저 안에서 처리하려면 JavaScript를 허용해야 합니다. 지원되는 최신 Edge/Chrome을 사용해 주세요.</noscript>
 </body>
 </html>

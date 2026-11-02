@@ -19,8 +19,12 @@ async function extract(file) {
 }
 
 self.addEventListener('message', async ({ data }) => {
-  if (data?.kind !== 'check') return;
+  if (!['check','extract-info'].includes(data?.kind)) return;
   try {
+    if (data.kind === 'extract-info') {
+      self.postMessage({kind:'info-result',doc:await extract(data.file)});
+      return;
+    }
     self.postMessage({ kind: 'progress', text: '시험 원안지를 PC 안에서 읽고 있습니다…' });
     const exam = await extract(data.exam);
     self.postMessage({ kind: 'progress', text: '문항정보표를 읽고 대조하고 있습니다…' });

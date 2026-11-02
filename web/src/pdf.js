@@ -17,12 +17,16 @@ class MemoryFont {
   async fetch({ filename }) { return bytes(data.standard_fonts[filename]); }
 }
 
+export function createPdfTask(buffer, { preview = false } = {}) {
+  return pdfjs.getDocument({ data: new Uint8Array(buffer), isEvalSupported: false, useWorkerFetch: false,
+    CMapReaderFactory: MemoryCMap, StandardFontDataFactory: MemoryFont,
+    disableFontFace: !preview, useSystemFonts: preview, disableAutoFetch: true, disableStream: true, verbosity: 0 });
+}
+
 export async function readPdf(buffer, name) {
   const doc = document(name), lines = [], empty = [], pages=[];
   let source;
-  const loading = pdfjs.getDocument({ data: new Uint8Array(buffer), isEvalSupported: false, useWorkerFetch: false,
-    CMapReaderFactory: MemoryCMap, StandardFontDataFactory: MemoryFont,
-    disableFontFace: true, useSystemFonts: false, disableAutoFetch: true, disableStream: true, verbosity: 0 });
+  const loading = createPdfTask(buffer);
   try {
     source = await loading.promise;
     if (source.numPages > 1000) throw new Error('1,000쪽을 초과하는 PDF는 지원하지 않습니다.');

@@ -7,7 +7,7 @@ import { fakeHwp } from '../../scripts/generate-hwp-samples.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const sample = name => path.join(root, 'samples', name);
-async function ready(page) { await page.goto('http://127.0.0.1:4173'); await expect(page.locator('#message')).toContainText('준비 완료'); }
+async function ready(page) { await page.goto('http://127.0.0.1:4173'); await page.locator('#mode-compare').click(); await expect(page.locator('#message')).toContainText('준비 완료'); }
 async function choose(page, exam, info) { await page.locator('#exam').setInputFiles(sample(exam)); await page.locator('#info').setInputFiles(sample(info)); await page.locator('#check').click(); }
 async function drop(page, target, names) {
   const payloads = await Promise.all(names.map(async item => typeof item === 'string' ? { name:item, bytes:Array.from(await readFile(sample(item))) } : item));
@@ -31,7 +31,7 @@ test('오프라인 파일 점검·근거·보고서·입력 변경', async ({ pa
   await expect(page.locator('#coverage')).toContainText('원안지 5개');
   await page.locator('#filter').selectOption('오류');
   await expect(page.locator('#findings-body tr')).toHaveCount(4);
-  await page.locator('details summary').first().click();
+  await page.locator('#findings-body details summary').first().click();
   await expect(page.locator('details[open] pre')).toContainText('시트');
   const d = page.waitForEvent('download'); await page.locator('#export').click();
   const downloaded = await d, b = new ExcelJS.Workbook(); await b.xlsx.readFile(await downloaded.path());

@@ -1,5 +1,6 @@
 import { ERROR, REVIEW, OK, points, answerDisplay, confidenceDisplay } from './core.js';
 import { download, reportBuffer, sampleFiles } from './report.js';
+import { initAi } from './ai-app.js';
 
 const $ = id => document.getElementById(id);
 let files = [null, null], result = null, worker, ready = false, busy = false, timer, generation = 0;
@@ -85,6 +86,7 @@ for (const zone of document.querySelectorAll('[data-drop-index]')) {
 document.addEventListener('dragover', event => { if (hasFiles(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'none'; } });
 document.addEventListener('drop', event => {
   event.preventDefault();
+  if (!$('ai-mode').hidden) return;
   setMessage(busy ? '점검이 끝난 뒤 원안지 또는 문항정보표 영역에 파일을 놓아 주세요.' : '위의 시험 원안지 또는 문항정보표 영역에 파일을 한 개씩 놓아 주세요.',true);
 });
 $('expected').addEventListener('input', () => { invalidate(); setMessage('기준 총점이 바뀌었습니다. 다시 점검해 주세요.'); });
@@ -155,6 +157,7 @@ $('export').addEventListener('click', async () => {
   catch { setMessage('보고서를 만들지 못했습니다. 브라우저 다운로드 권한을 확인해 주세요.', true); }
   finally { $('export').disabled = false; }
 });
-// 로컬 문서에는 innerHTML/eval/브라우저 저장소/API를 사용하지 않는다.
+// 로컬 문서 대조는 API를 사용하지 않는다. AI는 별도 컨트롤러의 명시적 동의 경로로만 호출한다.
 if (!window.Worker || !window.File || !window.BigInt) setMessage('최신 Edge 또는 Chrome을 사용해 주세요.', true);
 else startWorker();
+initAi();

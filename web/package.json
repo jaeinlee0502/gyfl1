@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
-    "test": "node tests/core.test.mjs",
+    "test": "node tests/core.test.mjs && node tests/gemini.test.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
