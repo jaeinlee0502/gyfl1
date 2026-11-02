@@ -43,6 +43,9 @@ exceljs/dist/exceljs.min.js:
    * @copyright Louis-Dominique Dubeau
    */
 
+cfb/cfb.js:
+  /*! crc32.js (C) 2014-present SheetJS -- http://sheetjs.com */
+
 decimal.js/decimal.mjs:
   /*!
    *  decimal.js v10.6.0
@@ -51,3 +54,26 @@ decimal.js/decimal.mjs:
    *  Copyright (c) 2025 Michael Mclaughlin <M8ch88l@gmail.com>
    *  MIT Licence
    */
+
+hwp-convert/dist/browser/hwp-convert.browser.mjs:
+  /*! Bundled license information:
+  
+  jszip/dist/jszip.min.js:
+    (*!
+    
+    JSZip v3.10.1 - A JavaScript class for generating and reading zip files
+    <http://stuartk.com/jszip>
+    
+    (c) 2009-2016 Stuart Knightley <stuart [at] stuartk.com>
+    Dual licenced under the MIT license or GPLv3. See https://raw.github.com/Stuk/jszip/main/LICENSE.markdown.
+    
+    JSZip uses the library pako released under the MIT license :
+    https://github.com/nodeca/pako/blob/main/LICENSE
+    *)
+  
+  cfb/cfb.js:
+    (*! crc32.js (C) 2014-present SheetJS -- http://sheetjs.com *)
+  
+  pako/dist/pako.esm.mjs:
+    (*! pako 2.2.0 https://github.com/nodeca/pako @license (MIT AND Zlib) *)
+  */
