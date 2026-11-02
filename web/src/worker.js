@@ -1,4 +1,5 @@
-import { compare, note } from './core.js';
+import { note } from './core.js';
+import { compareDocuments as compare } from './compare.js';
 import { readXlsx, readDocx, readHwpx } from './office.js';
 import { readPdf } from './pdf.js';
 import { readHwp } from './hwp.js';

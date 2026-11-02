@@ -2,7 +2,8 @@
 import * as CFB from 'cfb';
 import { Inflate } from 'fflate';
 import { parseHwp } from 'hwp-convert/browser';
-import { document, lineNumber, note, parseLines, parseRows, row, unknownTable } from './core.js';
+import { document, lineNumber, note, parseRows, row, unknownTable } from './core.js';
+import { collectSummaryTable, parseExamText } from './exam-text.js';
 
 export class HwpInputError extends Error {}
 const fail = message => { throw new HwpInputError(message); };
@@ -82,6 +83,10 @@ export function preflightHwp(input, maxExpanded = MAX_EXPANDED) {
   sections.sort((a,b) => a-b);
   if (!sections.length || sections.length > 1000 || sections.some((n,i) => n !== i)) fail('HWP 본문 섹션이 없거나 불연속/지원 한도 초과 상태입니다. HWPX로 다시 저장해 주세요.');
   const budget = { used:0, limit:maxExpanded, records:0, text:0 };
+  const bodyOnly = CFB.utils.cfb_new();
+  const plainHeader = header.slice();
+  new DataView(plainHeader.buffer).setUint32(36,flags & ~1,true);
+  CFB.utils.cfb_add(bodyOnly,'FileHeader',plainHeader);
   const unpack = (path, required = true) => {
     const raw = find(path);
     if (!raw) { if (required) fail('HWP 필수 구성요소가 없습니다: ' + path); return null; }
@@ -89,27 +94,23 @@ export function preflightHwp(input, maxExpanded = MAX_EXPANDED) {
     try { return boundedInflate(raw, budget); }
     catch (error) { if (error instanceof HwpInputError) throw error; fail('HWP 압축 데이터가 손상되었습니다. HWPX로 다시 저장해 주세요.'); }
   };
-  validateRecords(unpack('DocInfo'), budget);
-  for (const section of sections) validateRecords(unpack('BodyText/Section'+section), budget, true);
-  // 파서가 읽을 수 있는 임베디드 데이터도 선검사한다. 외부 링크는 열지 않는다.
-  for (let i = 0; i < container.FullPaths.length; i++) {
-    if (!/\/BinData\/BIN[0-9a-f]{4}\.[^/]+$/i.test(container.FullPaths[i])) continue;
-    const raw = new Uint8Array(container.FileIndex[i].content || []);
-    try { boundedInflate(raw, budget); }
-    catch (error) { if (error instanceof HwpInputError) throw error; budget.used += raw.length; }
-    if (budget.used > budget.limit) fail('HWP 임베디드 데이터가 지원 한도를 초과했습니다.');
+  const info = unpack('DocInfo'); validateRecords(info,budget); CFB.utils.cfb_add(bodyOnly,'DocInfo',info);
+  for (const section of sections) {
+    const path = 'BodyText/Section'+section, bytes = unpack(path);
+    validateRecords(bytes,budget,true); CFB.utils.cfb_add(bodyOnly,path,bytes);
   }
-  return { sections:sections.length, version:`${header[35]}.${header[34]}.${header[33]}.${header[32]}` };
+  // 그림/스크립트/미리보기는 파서에 전달하지 않는다. 메모리 안의 본문 전용 컨테이너이며 원본은 변경하지 않는다.
+  return { sections:sections.length, version:`${header[35]}.${header[34]}.${header[33]}.${header[32]}`, body:new Uint8Array(CFB.write(bodyOnly,{type:'array'})) };
 }
 
 export function readHwp(buffer, name) {
   const checked = preflightHwp(buffer);
   let source;
-  try { source = parseHwp(new Uint8Array(buffer)); }
+  try { source = parseHwp(checked.body); }
   catch { fail('HWP 본문을 해석하지 못했습니다. 한글에서 HWPX로 저장한 복사본으로 다시 시도해 주세요.'); }
   const doc = document(name), lines = [], unknown = [];
   doc.method = `HWP ${checked.version} 로컬 본문·표 추출(확인 필요)`;
-  note(doc, 'HWP는 자동번호·수식·그림·복잡한 표의 전체 복원을 보장하지 않습니다. 읽힌 값도 원문 확인이 필요합니다.', { location:name, text:doc.method });
+  note(doc, 'HWP의 그림·자동번호·복잡한 배치와 문항 내용은 별도 확인이 필요합니다. 명시적으로 읽힌 번호·배점은 항목별 신뢰도로 대조합니다.', { location:name, text:doc.method });
   let tableIndex = 0, matched = false;
   function paragraphs(values, location, body = false, depth = 0) {
     if (depth > 32) fail('HWP 표의 중첩이 지원 한도를 초과했습니다.');
@@ -132,6 +133,7 @@ export function readHwp(buffer, name) {
         }
         for (const r of rows) r.evidence.text = r.values.join(' | ');
         if (bad) { note(doc, 'HWP 표에 잘못되거나 중복된 셀 좌표가 있어 대조에서 제외했습니다.', { location:at,text:'표 좌표 확인 필요' }); continue; }
+        if (collectSummaryTable(doc,rows)) continue;
         if (parseRows(doc,rows)) matched = true; else unknown.push(rows);
       }
     }
@@ -141,12 +143,12 @@ export function readHwp(buffer, name) {
     if (!section.paragraphs.length) note(doc,'비어 있거나 해석하지 못한 HWP 섹션이 있습니다.',{location:`BodyText/Section${i}`,text:'원문 확인 필요'});
     paragraphs(section.paragraphs,`BodyText/Section${i}`,true);
   });
-  if (!matched) { parseLines(doc,lines); doc.method = `HWP ${checked.version} 본문 추정 추출`; }
+  if (!matched) { parseExamText(doc,lines); doc.method = `HWP ${checked.version} 명시적 문항번호·배점 추출`; }
   else {
     unknown.forEach(rows => unknownTable(doc,rows));
     if (lines.some(l => lineNumber.test(l.text))) note(doc,'HWP 문항 표만 대조했습니다. 번호가 있는 본문과 표의 일치는 별도로 확인하세요.',{location:name,text:'표 우선 추출 · 본문 대조 제외'});
   }
-  // 기본 구조가 읽혀도 렌더링/번호 복원까지 보증하지 않으므로 필드도 확인 필요.
+  // 전체 렌더링 완전성과 명시적 필드 신뢰도(number/points/answerReliable)는 별개이다.
   doc.questions.forEach(q => q.reliable = false);
   return doc;
 }

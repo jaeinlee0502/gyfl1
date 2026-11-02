@@ -49,7 +49,7 @@ for (const exam of ['exam_fixture.hwpx','exam_text.pdf','exam_hwp_fixture.hwp','
   await expect(page.locator('#exam-body tr')).toHaveCount(5);
   await expect(page.locator('#exam-body tr td:nth-child(2)')).toHaveText(['1','2','3','4','5']);
   await expect(page.locator('#exam-body tr td:nth-child(3)')).toHaveText(['20','20','20','20','20']);
-  await expect(page.locator('#exam-body')).toContainText(/\.(pdf|hwp)$/.test(exam) ? '확인 필요' : '표 값');
+  await expect(page.locator('#exam-body')).toContainText(exam==='exam_hwp_body_fixture.hwp'?'배점 확인':/\.(pdf|hwp)$/.test(exam) ? '확인 필요' : '표 값');
 });
 
 test('HWP와 XLSX를 드래그해 오프라인 점검·근거·보고서 다운로드', async ({page,context}) => {
@@ -127,6 +127,29 @@ test('보호 HWP는 드롭 후에도 명확한 안내로 거절', async ({page})
   await expect(page.locator('#message')).toContainText('암호화');
   await expect(page.locator('#results')).toBeHidden();
   await expect(page.locator('#check')).toBeEnabled();
+});
+
+test('학교형 HWP·두 쪽 PDF 표를 구분해 읽고 정답 미기재·별도 원안지를 안내',async({page,context})=>{
+  await ready(page);const requests=[];page.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});
+  await context.setOffline(true);
+  await drop(page,'#exam-dropzone',['exam_school_fixture.hwp']);
+  await drop(page,'#info-dropzone',['info_table_fixture.pdf']);
+  await page.locator('#check').click();await expect(page.locator('#message')).toContainText('점검 완료');
+  await expect(page.locator('#coverage')).toContainText('원안지 5개 / 정보표 7개');
+  await expect(page.locator('.metric.error strong')).toHaveText('2');
+  await expect(page.locator('#coverage-details')).toContainText('정답 대조는 하지 않았습니다');
+  await expect(page.locator('#coverage-details')).toContainText('별도 시험지');
+  await page.locator('#filter').selectOption('오류');
+  await expect(page.locator('#findings-body tr')).toHaveCount(2);
+  await page.locator('#tab-exam').click();
+  await expect(page.locator('#exam-body tr td:nth-child(2)')).toHaveText(Array(5).fill('원문 정답 미기재'));
+  await expect(page.locator('#exam-body tr td:nth-child(3)')).toHaveText(['14','13','15','14','14']);
+  await page.locator('#tab-info').click();
+  await expect(page.locator('#info-body tr')).toHaveCount(7);
+  await expect(page.locator('#info-body tr td:nth-child(1)')).toHaveText(['1','2','3','4','5','서답형 1','서답형 2']);
+  await expect(page.locator('#info-body')).toContainText('별도 채점기준표 참조');
+  expect(requests).toEqual([]);
+  await page.screenshot({path:'test-results/web-school-layout.png',fullPage:true});
 });
 
 test('스캔 PDF는 OCR 미지원 안내·수정 전 결과 무효화', async ({ page }) => {

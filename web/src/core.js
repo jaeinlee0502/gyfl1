@@ -35,6 +35,13 @@ export function points(value) {
 }
 
 export function document(name) { return { name, questions: [], notes: [], totals: [], complete: true, method: '명시적 문항 표' }; }
+export function answerDisplay(q) {
+  return q.answer ?? (q.answerState==='absent'?'원문 정답 미기재':q.answerState==='reference'?'별도 채점기준표 참조':'읽지 못함');
+}
+export function confidenceDisplay(q) {
+  if(q.numberReliable!=null) return `번호 ${q.numberReliable?'확인':'확인 필요'} · 배점 ${q.pointsReliable?'확인':'확인 필요'} · 정답 ${q.answerState==='absent'?'미기재':q.answerState==='reference'?'기준표 참조':q.answerReliable?'확인':'확인 필요'}`;
+  return q.reliable?'표 값':'확인 필요';
+}
 export function note(doc, message, evidence) { doc.complete = false; doc.notes.push({ message, evidence }); }
 export function row(values, location, reliable = true) { return { values, reliable, evidence: { location, text: values.map(text).join(' | ') } }; }
 const headers = { number: ['문항번호', '문제번호', '문항', '번호'], answer: ['정답', '답', '모범답안', '예시답안'], points: ['배점', '점수'], kind: ['문항유형', '유형', '구분'] };

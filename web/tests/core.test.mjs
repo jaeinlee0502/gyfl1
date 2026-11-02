@@ -7,7 +7,11 @@ import { answer, compare, document, ERROR, number, OK, points, REVIEW } from '..
 import { readXlsx, readDocx, readHwpx } from '../src/office.js';
 import { reportBuffer } from '../src/report.js';
 import { readHwp, preflightHwp } from '../src/hwp.js';
-import { fakeHwp } from '../scripts/generate-hwp-samples.mjs';
+import { fakeHwp, fakeSchoolHwp } from '../scripts/generate-hwp-samples.mjs';
+import { parsePdfTable } from '../src/pdf-table.js';
+import { compareDocuments } from '../src/compare.js';
+import { parseExamText } from '../src/exam-text.js';
+import { tablePages } from './metadata-cases.mjs';
 
 const bytes = async name => new Uint8Array(await readFile(new URL('../../samples/' + name, import.meta.url)));
 const exam = async () => readDocx(await bytes('exam.docx'), 'exam.docx');
@@ -97,4 +101,71 @@ test('HWP 병합 표와 불명확한 행은 확인 필요', () => {
 });
 test('HWP 미리보기만 있는 파일을 본문으로 대체하지 않음', () => {
   assert.throws(() => readHwp(fakeHwp({previewOnly:true}),'가상미리보기.hwp'),/본문 섹션/);
+});
+
+function schoolInfo(pages=tablePages()) {const d=document('가상 정보표.pdf');assert.equal(parsePdfTable(d,pages),true);return d;}
+test('학교형 원안지: 문항 수·유형별 총점·다음 문단 배점·정답 미기재',()=>{
+  const d=readHwp(fakeSchoolHwp(),'가상 원안지.hwp');
+  assert.equal(d.questions.length,5);assert.ok(d.questions.every(q=>q.pointsReliable && q.answer==null && q.answerState==='absent'));
+  assert.deepEqual(d.expectedCounts,{choice:5,written:2,all:7});
+  assert.equal(d.numberingCompleteKinds.choice,true);assert.equal(d.numberingCompleteKinds.written,false);
+  assert.equal(d.questions[3].points,'14');assert.ok(d.questions[3].evidence.location.includes('→'));
+  assert.deepEqual(d.separateKinds,['written']);
+});
+test('다중 페이지 PDF 표: 헤더 없는 다음 쪽·유형별 번호·페이지 번호 제외',()=>{
+  const d=schoolInfo();
+  assert.equal(d.questions.length,7);assert.deepEqual(d.questions.map(q=>q.number),['1','2','3','4','5','서답형 1','서답형 2']);
+  assert.equal(d.complete,true);assert.deepEqual(d.numberingCompleteKinds,{choice:true,written:true});
+  assert.ok(d.questions.every(q=>q.pointsReliable));
+  assert.ok(d.questions.slice(5).every(q=>q.answer===null && q.answerState==='reference'));
+  assert.deepEqual(d.questions.slice(0,5).map(q=>q.answer),['1','2','3','4','5']);
+});
+test('명시적 배점 불일치만 오류로 표시하고 미기재 정답은 묶어서 안내',()=>{
+  const r=compareDocuments(readHwp(fakeSchoolHwp(),'가상.hwp'),schoolInfo());
+  assert.deepEqual(r.findings.filter(f=>f.status===ERROR).map(f=>[f.code,f.number]),[['points','2'],['points','3']]);
+  assert.equal(r.findings.filter(f=>f.code==='answer_unavailable').length,1);
+  assert.equal(r.findings.filter(f=>f.code==='missing_section').length,1);
+  assert.equal(r.findings.filter(f=>f.code==='points' && f.status===OK).length,3);
+  assert.ok(r.exam.questions.every(q=>q.answer===null)); // 정보표 정답을 원안지로 복사하지 않는다.
+  assert.ok(!r.findings.some(f=>f.code==='answer' && f.status===OK));
+});
+test('선택형만 있는 원안지의 소계를 전체 총점 오류로 오판하지 않음',()=>{
+  const r=compareDocuments(readHwp(fakeSchoolHwp(),'가상.hwp'),schoolInfo());
+  assert.ok(!r.findings.some(f=>f.code==='total' && f.status===ERROR));
+  assert.ok(r.findings.some(f=>f.code==='total' && f.number==='전체 합계' && f.status===REVIEW));
+  assert.ok(r.findings.some(f=>f.code==='total' && f.number==='선택형 합계' && f.status===OK));
+});
+test('정보표 표기 개수와 추출 개수가 다르면 완전성으로 처리하지 않음',()=>{
+  const pages=tablePages();pages[0].items[0].str='총 문항수 8 문항';
+  const d=schoolInfo(pages);assert.equal(d.complete,false);assert.equal(d.numberingCompleteKinds.choice,false);
+  const r=compareDocuments(readHwp(fakeSchoolHwp(),'가상.hwp'),d);
+  assert.ok(r.findings.some(f=>f.code==='extraction' && f.status===REVIEW));
+});
+test('배점 열의 숫자가 여러 개이면 그 문항은 오류 대신 확인 필요',()=>{
+  const pages=tablePages();pages[0].items.push({str:'15',x:495,y:217,width:10,height:10});
+  const d=schoolInfo(pages);assert.equal(d.questions[1].points,null);
+  const r=compareDocuments(readHwp(fakeSchoolHwp(),'가상.hwp'),d);
+  assert.ok(r.findings.some(f=>f.code==='points' && f.number==='2' && f.status===REVIEW));
+  assert.ok(!r.findings.some(f=>f.code==='points' && f.number==='2' && f.status===ERROR));
+});
+test('본문 배점은 바로 뒤의 단독 표시만 연결하고 선지 배점을 훔치지 않음',()=>{
+  const d=document('가상 본문');
+  parseExamText(d,[{location:'문단 1',text:'1. 가상 문제는?'},{location:'문단 2',text:'① 예시 [2점]'}]);
+  assert.equal(d.questions.length,1);assert.equal(d.questions[0].points,null);
+});
+test('동일 개수여도 번호에 공백이 있으면 범위 완전성을 인정하지 않음',()=>{
+  const d=document('가상');d.expectedCounts={choice:2};
+  parseExamText(d,[{location:'문단 1',text:'1. 가상 문제? [50점]'},{location:'문단 2',text:'3. 가상 문제? [50점]'}]);
+  assert.equal(d.numberingCompleteKinds.choice,false);assert.ok(d.notes.length>0);
+});
+test('잘린 채점기준표 참조 문구를 실제 정답 문자열로 확정하지 않음',()=>{
+  const pages=tablePages();
+  pages[1].items=pages[1].items.filter(i=>!(i.x===530 && i.y>210 && i.y<234));
+  const d=schoolInfo(pages),q=d.questions.find(q=>q.number==='서답형 1');
+  assert.equal(q.answer,null);assert.equal(q.answerReliable,false);assert.equal(q.answerState,'unreadable');
+});
+test('별도 서답형 본문의 유형 제목을 번호에 반영',()=>{
+  const d=document('가상 서답형');d.expectedCounts={written:2};
+  parseExamText(d,[{location:'문단 1',text:'서답형 문항'},{location:'문단 2',text:'1. 가상 내용을 쓰시오. [50점]'},{location:'문단 3',text:'2. 가상 내용을 설명하시오. [50점]'}]);
+  assert.deepEqual(d.questions.map(q=>q.number),['서답형 1','서답형 2']);assert.equal(d.numberingCompleteKinds.written,true);
 });

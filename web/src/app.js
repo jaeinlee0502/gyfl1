@@ -1,4 +1,4 @@
-import { ERROR, REVIEW, OK, points } from './core.js';
+import { ERROR, REVIEW, OK, points, answerDisplay, confidenceDisplay } from './core.js';
 import { download, reportBuffer, sampleFiles } from './report.js';
 
 const $ = id => document.getElementById(id);
@@ -139,10 +139,12 @@ function render() {
   $('results').hidden = false; $('metrics').replaceChildren();
   for (const status of [ERROR, REVIEW, OK]) { const card = document.createElement('div'), count = document.createElement('strong'), label = document.createElement('span'); card.className = 'metric ' + classes[status]; label.textContent = status; count.textContent = result.findings.filter(f => f.status === status).length; card.append(label,count); $('metrics').append(card); }
   $('coverage').textContent = `추출 행: 원안지 ${result.exam.questions.length}개 / 정보표 ${result.info.questions.length}개 · 위 숫자는 문항 수가 아닌 점검 항목 수입니다. 번호·정답·배점은 추출 탭에서 확인하세요.`;
+  $('coverage-details').textContent=(result.summary||[]).join('\n');
+  $('coverage-details').hidden=!(result.summary?.length);
   renderFindings();
   for (const [name, doc] of [['exam', result.exam], ['info', result.info]]) {
     $(name + '-body').replaceChildren();
-    for (const q of doc.questions) { const tr = document.createElement('tr'); tr.append(td(q.number),td(q.answer ?? '읽지 못함'),td(q.points ?? '읽지 못함'),td(q.reliable ? '표 값' : '확인 필요'),td(`${q.evidence.location}\n${q.evidence.text}`)); $(name + '-body').append(tr); }
+    for (const q of doc.questions) { const tr = document.createElement('tr'); tr.append(td(q.number),td(answerDisplay(q)),td(q.points ?? '읽지 못함'),td(confidenceDisplay(q)),td(`${q.evidence.location}\n${q.evidence.text}`)); $(name + '-body').append(tr); }
   }
   selectTab('findings');
 }

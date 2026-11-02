@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { answerDisplay, confidenceDisplay } from './core.js';
 
 const evidenceText = values => values.map(e => `${e.location}\n${e.text}`).join('\n\n');
 function append(sheet, values) {
@@ -23,7 +24,7 @@ export async function reportBuffer(result) {
   for (const [title, doc] of [['원안지 추출', result.exam], ['정보표 추출', result.info]]) {
     const sheet = book.addWorksheet(title);
     append(sheet, ['문항번호','정답','배점','추출 수준','원본 위치','읽은 원문']);
-    for (const q of doc.questions) append(sheet, [q.number,q.answer ?? '읽지 못함',q.points ?? '읽지 못함',q.reliable ? '표 값' : '확인 필요',q.evidence.location,q.evidence.text]);
+    for (const q of doc.questions) append(sheet, [q.number,answerDisplay(q),q.points ?? '읽지 못함',confidenceDisplay(q),q.evidence.location,q.evidence.text]);
   }
   for (const sheet of book.worksheets) {
     sheet.views = [{ state: 'frozen', ySplit: 1 }];

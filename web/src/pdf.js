@@ -3,6 +3,7 @@ import * as pdfjs from 'pdfjs-dist/build/pdf.mjs';
 import * as worker from 'pdfjs-dist/build/pdf.worker.mjs';
 import data from '../.generated/pdf-data.js';
 import { document, note, parseLines } from './core.js';
+import { parsePdfTable } from './pdf-table.js';
 
 globalThis.pdfjsWorker = worker;
 function bytes(value) {
@@ -17,7 +18,7 @@ class MemoryFont {
 }
 
 export async function readPdf(buffer, name) {
-  const doc = document(name), lines = [], empty = [];
+  const doc = document(name), lines = [], empty = [], pages=[];
   let source;
   const loading = pdfjs.getDocument({ data: new Uint8Array(buffer), isEvalSupported: false, useWorkerFetch: false,
     CMapReaderFactory: MemoryCMap, StandardFontDataFactory: MemoryFont,
@@ -27,6 +28,12 @@ export async function readPdf(buffer, name) {
     if (source.numPages > 1000) throw new Error('1,000쪽을 초과하는 PDF는 지원하지 않습니다.');
     for (let p = 1; p <= source.numPages; p++) {
       const page = await source.getPage(p), content = await page.getTextContent();
+      const viewport=page.getViewport({scale:1});
+      pages.push({page:p,width:viewport.width,height:viewport.height,rotation:page.rotate,
+        items:content.items.filter(i=>typeof i.str==='string' && i.str.trim()).map(i=>{
+          const [x,y]=viewport.convertToViewportPoint(i.transform[4],i.transform[5]);
+          return {str:i.str,x,y,width:i.width,height:i.height};
+        })});
       const groups = [];
       for (const item of content.items) {
         if (typeof item.str !== 'string' || !item.str.trim()) continue;
@@ -45,7 +52,7 @@ export async function readPdf(buffer, name) {
     }
     if (!lines.length) throw new Error('텍스트가 없는 PDF입니다. 스캔 PDF의 OCR은 지원하지 않습니다. 텍스트 PDF 또는 HWPX로 다시 저장해 주세요.');
     if (empty.length) note(doc, '텍스트 없는 쪽이 있습니다. 그림/스캔 속 문항은 읽지 못합니다.', { location: 'PDF', text: `쪽: ${empty.join(', ')}` });
-    parseLines(doc, lines, true);
+    if (!parsePdfTable(doc,pages)) parseLines(doc, lines, true);
     return doc;
   } catch (error) {
     if (error.name === 'PasswordException') throw new Error('암호화된 PDF는 지원하지 않습니다. 복사본의 암호를 해제해 주세요.');

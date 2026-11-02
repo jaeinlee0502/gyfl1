@@ -18,7 +18,7 @@ function paragraph(text, level = 0) {
   return Buffer.concat([record(66,level,header),record(67,level+1,bytes)]);
 }
 
-export function fakeHwp({ compressed = true, flags = 0, rows, bodyOnly = false, badBody = false, merge = false, extraSection = false, extendedText = false, previewOnly = false } = {}) {
+export function fakeHwp({ compressed = true, flags = 0, rows, bodyOnly = false, badBody = false, merge = false, extraSection = false, extendedText = false, previewOnly = false, bodyLines = [] } = {}) {
   rows ||= [['문항번호','정답','배점'],...[1,2,3,4,5].map(n => [n,String(n),20]),['합계','',100]];
   const header = Buffer.alloc(256); header.write('HWP Document File',0,'ascii');
   header[35] = 5; header[33] = 3;
@@ -43,6 +43,7 @@ export function fakeHwp({ compressed = true, flags = 0, rows, bodyOnly = false, 
     }
     body = Buffer.concat(pieces);
   }
+  if (bodyLines.length) body=Buffer.concat([body,...bodyLines.map(t=>paragraph(t))]);
   if (extendedText) body = Buffer.concat([body,paragraph('가상 긴 설명 '.repeat(500))]);
   if (badBody) body = Buffer.concat([body,Buffer.from([0x43,0,0xf0,0xff])]);
   const cfb = CFB.utils.cfb_new();
@@ -54,9 +55,18 @@ export function fakeHwp({ compressed = true, flags = 0, rows, bodyOnly = false, 
   return new Uint8Array(CFB.write(cfb,{type:'buffer'}));
 }
 
+export function fakeSchoolHwp() {
+  return fakeHwp({rows:[['유형','문항 수','총 점'],['선택형','5문항','70점'],['서답형','2문항','30점'],['합계','7문항','100점']],
+    bodyLines:['1. 가상 모형의 색은? [14점]','① 빨강 ② 파랑 ③ 초록 ④ 노랑 ⑤ 검정',
+      '2. 가상 상자의 수는? [13점]','3. 가상 카드의 개수는? [15점]',
+      '4. 가상 도형의 모양은?','[14점]','5. 가상 실험의 순서는? [14점]',
+      '선택형 문항이 끝났습니다. 서답형 문제는 별도의 시험지를 참고하세요.']});
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const dir = fileURLToPath(new URL('../../samples/',import.meta.url));
   await mkdir(dir,{recursive:true});
-  for (const [name, options] of [['exam_hwp_fixture.hwp',{}],['exam_hwp_uncompressed_fixture.hwp',{compressed:false}],['exam_hwp_body_fixture.hwp',{bodyOnly:true}]]) await writeFile(path.join(dir,name),fakeHwp(options),{flag:process.argv.includes('--force') ? 'w' : 'wx'});
-  console.log('가상 HWP 5 추출 fixture 3개 생성 완료');
+  const fixtures=[['exam_hwp_fixture.hwp',fakeHwp()],['exam_hwp_uncompressed_fixture.hwp',fakeHwp({compressed:false})],['exam_hwp_body_fixture.hwp',fakeHwp({bodyOnly:true})],['exam_school_fixture.hwp',fakeSchoolHwp()]];
+  for (const [name, bytes] of fixtures) await writeFile(path.join(dir,name),bytes,{flag:process.argv.includes('--force') ? 'w' : 'wx'});
+  console.log('가상 HWP 5 추출 fixture 4개 생성 완료');
 }
