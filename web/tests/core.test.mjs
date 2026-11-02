@@ -6,6 +6,8 @@ import { zipSync, strToU8 } from 'fflate';
 import { answer, compare, document, ERROR, number, OK, points, REVIEW } from '../src/core.js';
 import { readXlsx, readDocx, readHwpx } from '../src/office.js';
 import { reportBuffer } from '../src/report.js';
+import { readHwp, preflightHwp } from '../src/hwp.js';
+import { fakeHwp } from '../scripts/generate-hwp-samples.mjs';
 
 const bytes = async name => new Uint8Array(await readFile(new URL('../../samples/' + name, import.meta.url)));
 const exam = async () => readDocx(await bytes('exam.docx'), 'exam.docx');
@@ -58,4 +60,41 @@ test('XLSX 보고서 원문은 수식이 아닌 문자열', async () => {
   const buffer = await reportBuffer(r), book = new ExcelJS.Workbook(); await book.xlsx.load(buffer);
   assert.equal(book.worksheets.length,4); assert.equal(book.getWorksheet('점검 결과').getCell('C2').value,injection);
   book.eachSheet(s => s.eachRow(row => row.eachCell(c => assert.notEqual(c.type, ExcelJS.ValueType.Formula))));
+});
+
+for (const compressed of [true,false]) test(`HWP 5 ${compressed ? '압축' : '비압축'} 표의 번호·정답·배점`, () => {
+  const d = readHwp(fakeHwp({compressed}),'가상.hwp');
+  assert.equal(d.questions.length,5);
+  assert.deepEqual(d.questions.map(q => q.answer),['1','2','3','4','5']);
+  assert.ok(d.questions.every(q => q.points === '20' && !q.reliable && q.evidence.location.includes('BodyText/Section0')));
+  assert.equal(d.totals[0].points,'100'); assert.equal(d.complete,false);
+});
+test('HWP 한 줄 본문과 확장 크기 레코드', () => {
+  const d = readHwp(fakeHwp({bodyOnly:true,extendedText:true}),'가상본문.hwp');
+  assert.equal(d.questions.length,5); assert.ok(d.questions.every(q => q.answer && q.points === '20'));
+  assert.equal(d.complete,false);
+});
+test('HWP 비교는 불확실한 추출을 오류로 단정하지 않음', async () => {
+  const d = readHwp(fakeHwp(),'가상.hwp'), r = compare(d,await info('info_total_error.xlsx'));
+  assert.ok(r.findings.some(f => f.code === 'points' && f.status === REVIEW));
+  assert.ok(!r.findings.some(f => f.code === 'points' && f.status === ERROR));
+});
+for (const [flags,message] of [[2,/암호화/],[4,/배포용/],[16,/DRM/],[256,/보호/],[1024,/보호/]]) test(`보호 HWP 플래그 ${flags}는 추출 전에 거절`, () => {
+  assert.throws(() => readHwp(fakeHwp({flags}),'가상보호.hwp'),message);
+});
+test('HWP 97·가짜 확장자·잘린 레코드·불연속 섹션 거절', () => {
+  assert.throws(() => readHwp(new TextEncoder().encode('HWP Document File V3.00'),'가상97.hwp'),/97/);
+  assert.throws(() => readHwp(new TextEncoder().encode('가상 손상 파일'),'가상.hwp'),/유효한 HWP/);
+  assert.throws(() => readHwp(fakeHwp({badBody:true}),'가상손상.hwp'),/레코드/);
+  assert.throws(() => readHwp(fakeHwp({extraSection:true}),'가상섹션.hwp'),/섹션/);
+});
+test('HWP 압축 해제 예산은 큰 출력 전에 중단', () => {
+  assert.throws(() => preflightHwp(fakeHwp({extendedText:true}),256),/크기/);
+});
+test('HWP 병합 표와 불명확한 행은 확인 필요', () => {
+  const d = readHwp(fakeHwp({merge:true}),'가상병합.hwp');
+  assert.equal(d.complete,false); assert.ok(d.notes.some(n => n.message.includes('표 구조')));
+});
+test('HWP 미리보기만 있는 파일을 본문으로 대체하지 않음', () => {
+  assert.throws(() => readHwp(fakeHwp({previewOnly:true}),'가상미리보기.hwp'),/본문 섹션/);
 });

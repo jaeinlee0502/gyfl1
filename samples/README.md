@@ -12,8 +12,15 @@
 | `exam_text.pdf` | 텍스트 PDF 본문 추출 예제. 추출값이 맞더라도 항상 확인 필요 |
 | `scan_only.pdf` | 텍스트 없는 그림 PDF. OCR 미지원 안내를 확인하는 음성 테스트 |
 | `exam_fixture.hwpx` | HWPX XML **어댑터 테스트용 최소 fixture**. 한글 편집기에서 열 수 있는 완전한 문서로 보장하지 않음 |
+| `exam_hwp_fixture.hwp` | 웹 HWP 5 압축 표 추출용 가상 CFB fixture. 1~5번, 정답 1~5, 각 20점. 항상 확인 필요 |
+| `exam_hwp_uncompressed_fixture.hwp` | 같은 가상 표의 비압축 HWP 5 fixture |
+| `exam_hwp_body_fixture.hwp` | 정답·배점이 명시된 한 줄 본문 HWP 5 fixture |
 
 UI의 ‘예제 불러오기’ 후 ‘점검 시작’을 누르세요. 실제 한글 문서는 한글에서 HWPX로 저장한 복사본을 사용하세요. HWPX의 복잡한 배치·수식·병합 표는 지원 범위가 제한되어 있습니다.
 
+HWP fixture 3개는 **유효한 CFB/FileHeader/BodyText 바이너리의 추출 테스트용 최소 문서**이며 한글 편집기에서 편집/인쇄 가능한 전체 문서를 생성하는 도구는 아닙니다. 웹 화면에서 파일 선택/드래그로 입력해 `info_ok.xlsx`와 대조할 수 있습니다. 실제 HWP 양식은 가상 복제본으로 별도 검수하세요.
+
 다시 생성: `.venv\Scripts\python scripts\generate_samples.py --force` (기존 가상 샘플을 덮어씁니다).
+
+HWP fixture 재생성: Node 의존성 설치 후 프로젝트 루트에서 `node web/scripts/generate-hwp-samples.mjs --force`.
 

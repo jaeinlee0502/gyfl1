@@ -1,6 +1,7 @@
 import { compare, note } from './core.js';
 import { readXlsx, readDocx, readHwpx } from './office.js';
 import { readPdf } from './pdf.js';
+import { readHwp } from './hwp.js';
 
 // CSP에 더해 처리용 worker의 네트워크 API 자체를 차단한다.
 const denied = () => { throw new Error('문서 처리 중 네트워크 통신은 허용하지 않습니다.'); };
@@ -9,10 +10,9 @@ for (const key of ['XMLHttpRequest', 'WebSocket', 'EventSource', 'WebTransport']
 
 async function extract(file) {
   const extension = file.name.split('.').at(-1).toLowerCase();
-  if (extension === 'hwp') throw new Error('구형 HWP는 지원하지 않습니다. 한글에서 HWPX 또는 텍스트 PDF로 변환해 주세요.');
-  if (!['xlsx', 'docx', 'hwpx', 'pdf'].includes(extension)) throw new Error('지원 형식은 XLSX, DOCX, HWPX, 텍스트 PDF입니다.');
+  if (!['xlsx', 'docx', 'hwpx', 'hwp', 'pdf'].includes(extension)) throw new Error('지원 형식은 XLSX, DOCX, HWPX, HWP 5, 텍스트 PDF입니다.');
   if (file.buffer.byteLength > 50 * 1024 * 1024) throw new Error('50MB 이하 파일을 선택해 주세요.');
-  const doc = await ({ xlsx: readXlsx, docx: readDocx, hwpx: readHwpx, pdf: readPdf })[extension](file.buffer, file.name);
+  const doc = await ({ xlsx: readXlsx, docx: readDocx, hwpx: readHwpx, hwp:readHwp, pdf: readPdf })[extension](file.buffer, file.name);
   if (!doc.questions.length) note(doc, '문항을 추출하지 못했습니다. ‘문항번호 / 정답 / 배점’ 표 또는 안내된 본문 형식을 사용하세요.', { location: file.name, text: '추출 문항 0개 — 정상 판정 불가' });
   return doc;
 }

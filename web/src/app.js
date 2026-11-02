@@ -9,10 +9,16 @@ const setMessage = (message, error = false) => { $('message').textContent = mess
 function updateButtons() {
   $('check').disabled = !ready || busy;
   for (const id of ['exam','info','expected','sample']) $(id).disabled = busy;
+  document.querySelectorAll('[data-drop-index]').forEach(zone => {
+    zone.setAttribute('aria-busy', String(busy));
+    if (busy) zone.classList.remove('drag-active');
+  });
 }
 function startWorker(preserveMessage = false) {
   ready = false; updateButtons();
-  const current = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+  const workerUrl = new URL('./worker.js', import.meta.url);
+  workerUrl.searchParams.set('v',__APP_VERSION__);
+  const current = new Worker(workerUrl, { type: 'module' });
   worker = current;
   current.onmessage = ({ data }) => {
     if (current !== worker) return;
@@ -30,8 +36,56 @@ function invalidate() {
 function showFiles() {
   ['exam', 'info'].forEach((id, i) => $(id + '-name').textContent = files[i] ? files[i].name : '선택한 파일 없음');
 }
+function acceptFiles(index, candidates) {
+  if (busy) { setMessage('점검 중에는 파일을 바꿀 수 없습니다. 완료 후 다시 놓아 주세요.', true); return; }
+  const selected = Array.from(candidates || []);
+  if (selected.length !== 1) { setMessage('각 영역에 파일을 한 개씩 놓아 주세요. 여러 파일은 한 번에 받지 않습니다.', true); return; }
+  const file = selected[0];
+  if (!/\.(xlsx|docx|hwpx|hwp|pdf)$/i.test(file.name)) { setMessage('지원 형식은 XLSX, DOCX, HWP 5, HWPX, 텍스트 PDF입니다.', true); return; }
+  if (!file.size) { setMessage('빈 파일이나 폴더는 읽을 수 없습니다. 문서 파일 한 개를 선택해 주세요.', true); return; }
+  if (file.size > 50*1024*1024) { setMessage('파일은 각각 50MB 이하여야 합니다.', true); return; }
+  files[index] = file;
+  invalidate(); showFiles();
+  setMessage(`${index === 0 ? '시험 원안지' : '문항정보표'}를 선택했습니다. 두 문서를 준비한 뒤 점검을 시작하세요.`);
+}
 for (const [i, id] of ['exam','info'].entries()) $(id).addEventListener('change', () => {
-  files[i] = $(id).files[0] || null; invalidate(); showFiles(); setMessage('입력이 바뀌었습니다. 점검을 다시 시작해 주세요.');
+  const selected = Array.from($(id).files);
+  // 같은 파일을 다시 선택해도 change가 발생하고, 실제 File 참조는 앱에서만 관리한다.
+  $(id).value = '';
+  if (selected.length) acceptFiles(i,selected);
+});
+const hasFiles = event => Array.from(event.dataTransfer?.types || []).includes('Files');
+for (const zone of document.querySelectorAll('[data-drop-index]')) {
+  let entered = 0;
+  zone.addEventListener('dragenter', event => {
+    if (!hasFiles(event)) return;
+    event.preventDefault(); event.stopPropagation(); entered++;
+    if (!busy) zone.classList.add('drag-active');
+  });
+  zone.addEventListener('dragover', event => {
+    if (!hasFiles(event)) return;
+    event.preventDefault(); event.stopPropagation();
+    event.dataTransfer.dropEffect = busy ? 'none' : 'copy';
+  });
+  zone.addEventListener('dragleave', event => {
+    if (!hasFiles(event)) return;
+    event.stopPropagation(); entered = Math.max(0,entered-1);
+    if (!entered) zone.classList.remove('drag-active');
+  });
+  zone.addEventListener('drop', event => {
+    event.preventDefault(); event.stopPropagation(); entered = 0; zone.classList.remove('drag-active');
+    if (busy) { setMessage('점검 중에는 파일을 바꿀 수 없습니다. 완료 후 다시 놓아 주세요.',true); return; }
+    if (!hasFiles(event)) { setMessage('링크나 글이 아닌 PC의 문서 파일을 놓아 주세요.',true); return; }
+    const items = Array.from(event.dataTransfer.items || []);
+    if (items.some(item => item.kind === 'file' && item.webkitGetAsEntry?.()?.isDirectory)) { setMessage('폴더는 지원하지 않습니다. 폴더 안의 문서 파일 한 개를 놓아 주세요.',true); return; }
+    acceptFiles(Number(zone.dataset.dropIndex),event.dataTransfer.files);
+  });
+}
+// 영역 밖으로 놓아도 브라우저가 문서로 이동해 기존 결과를 잃지 않도록 막는다.
+document.addEventListener('dragover', event => { if (hasFiles(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'none'; } });
+document.addEventListener('drop', event => {
+  event.preventDefault();
+  setMessage(busy ? '점검이 끝난 뒤 원안지 또는 문항정보표 영역에 파일을 놓아 주세요.' : '위의 시험 원안지 또는 문항정보표 영역에 파일을 한 개씩 놓아 주세요.',true);
 });
 $('expected').addEventListener('input', () => { invalidate(); setMessage('기준 총점이 바뀌었습니다. 다시 점검해 주세요.'); });
 $('sample').addEventListener('click', async () => {

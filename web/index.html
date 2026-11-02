@@ -14,12 +14,12 @@
   <header class="masthead"><a href="./" class="brand"><span class="brand-mark" aria-hidden="true">✓</span>시험출제 통합점검기<span class="version">1단계 MVP · 웹</span></a><a href="./privacy.html" target="_blank" rel="noopener noreferrer">처리 방식과 지원 범위 ↗</a></header>
   <main>
     <section class="intro"><div><p class="eyebrow">선생님의 판단을 돕는 문서 대조</p><h1>시험 전 마지막 확인,<br>선생님의 PC 안에서.</h1><p class="lede">원안지와 문항정보표의 번호·정답·배점을 나란히 살펴보세요.<br>문서는 서버로 전송하지 않고, 이 브라우저 안에서만 처리합니다.</p></div><aside class="privacy-card"><span class="pill">파일 전송 없음</span><h2>파일 선택 ≠ 서버 업로드</h2><p>회원가입도, 문서 저장 서버도 없습니다.<br>원본을 수정하지 않으며 결과는<br>직접 보고서로 내려받을 수 있습니다.</p><p class="small">학교에서 허용한 PC·브라우저와 배포 주소를 이용해 주세요.</p></aside></section>
-    <section class="panel" aria-labelledby="input-title"><div class="section-head"><h2 id="input-title"><span class="step">01</span> 대조할 두 문서를 선택하세요</h2><span class="small">XLSX · DOCX · HWPX · 텍스트 PDF / 각 50MB 이하</span></div>
+    <section class="panel" aria-labelledby="input-title"><div class="section-head"><h2 id="input-title"><span class="step">01</span> 대조할 두 문서를 선택하세요</h2><span class="small">XLSX · DOCX · HWP · HWPX · 텍스트 PDF / 각 50MB 이하</span></div>
       <div class="file-grid">
-        <div class="file-card"><span class="file-role">시험 원안지</span><p>문항번호·정답·배점을 읽을 원본</p><label for="exam" class="file-pick">PC에서 파일 선택</label><input type="file" id="exam" accept=".xlsx,.docx,.hwpx,.pdf"><output id="exam-name">선택한 파일 없음</output></div>
-        <div class="file-card"><span class="file-role">문항정보표</span><p>원안지와 비교할 문항 정보</p><label for="info" class="file-pick">PC에서 파일 선택</label><input type="file" id="info" accept=".xlsx,.docx,.hwpx,.pdf"><output id="info-name">선택한 파일 없음</output></div>
+        <div class="file-card" id="exam-dropzone" data-drop-index="0" role="region" aria-label="시험 원안지 파일 놓기"><span class="file-role">시험 원안지</span><p>여기에 원안지 파일 1개를 끌어 놓으세요.</p><label for="exam" class="file-pick">또는 PC에서 파일 선택</label><input type="file" id="exam" accept=".xlsx,.docx,.hwp,.hwpx,.pdf"><output id="exam-name">선택한 파일 없음</output></div>
+        <div class="file-card" id="info-dropzone" data-drop-index="1" role="region" aria-label="문항정보표 파일 놓기"><span class="file-role">문항정보표</span><p>여기에 문항정보표 파일 1개를 끌어 놓으세요.</p><label for="info" class="file-pick">또는 PC에서 파일 선택</label><input type="file" id="info" accept=".xlsx,.docx,.hwp,.hwpx,.pdf"><output id="info-name">선택한 파일 없음</output></div>
       </div>
-      <p class="format-hint">권장: ‘문항번호 / 정답 / 배점’ 열이 있는 표. 구형 HWP는 HWPX로 변환하세요. 스캔 PDF의 OCR은 지원하지 않습니다.</p>
+      <p class="format-hint">권장: ‘문항번호 / 정답 / 배점’ 표. HWP 5 계열을 직접 읽습니다. 암호화·배포용 HWP와 HWP 97은 변환이 필요하며, 스캔 PDF의 OCR은 지원하지 않습니다.</p>
       <div class="controls"><label for="expected">교사 지정 기준 총점 <span class="number-input"><input id="expected" type="number" min="0.01" max="10000" step="0.01" value="100"> 점</span></label><button id="sample" class="quiet">가상 오류 예제로 연습하기</button><button id="check" class="primary" disabled>두 문서 점검하기 <span aria-hidden="true">→</span></button></div>
     </section>
     <div class="notice" id="message" role="status" aria-live="polite">점검 도구를 준비하고 있습니다…</div>
