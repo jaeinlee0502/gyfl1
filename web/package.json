@@ -1,0 +1,23 @@
+{
+  "name": "exam-checker-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "test": "node tests/core.test.mjs",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "decimal.js": "10.6.0",
+    "exceljs": "4.4.0",
+    "fflate": "0.8.3",
+    "pdfjs-dist": "4.10.38"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "esbuild": "0.25.12"
+  }
+}

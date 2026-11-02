@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+reports/
+build/
+dist/
+*.egg-info/
+*.spec
+.coverage
+wheelhouse/
+node_modules/
+web/.generated/
+web/test-results/
+web/playwright-report/
+
+
