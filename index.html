@@ -7,8 +7,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; worker-src 'self'; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>시험출제 통합점검기 · 내 PC에서 안전하게</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="./style.css?v=4ae3287bb2876bd9">
-  <script src="./app.js?v=4ae3287bb2876bd9" type="module"></script>
+  <link rel="stylesheet" href="./style.css?v=41347c29fcc75bad">
+  <script src="./app.js?v=41347c29fcc75bad" type="module"></script>
 </head>
 <body>
   <header class="masthead"><a href="./" class="brand"><span class="brand-mark" aria-hidden="true">✓</span>시험출제 통합점검기<span class="version">1단계 MVP · 웹</span></a><a href="./privacy.html" target="_blank" rel="noopener noreferrer">처리 방식과 지원 범위 ↗</a></header>
@@ -27,6 +27,7 @@
       <div class="section-head"><div><p class="eyebrow">비교 결과</p><h2 id="results-title"><span class="step">02</span> 원문 근거와 함께 확인하세요</h2></div><div class="result-actions"><button id="clear" class="quiet">선택·결과 지우기</button><button id="export" class="primary">XLSX 보고서 내려받기</button></div></div>
       <div class="metrics" id="metrics"></div>
       <p id="coverage" class="format-hint"></p>
+      <p id="coverage-details" class="scope-summary" hidden></p>
       <div class="tabs" role="tablist" aria-label="결과 보기"><button id="tab-findings" class="tab active" role="tab" aria-selected="true" aria-controls="view-findings">점검 결과</button><button id="tab-exam" class="tab" role="tab" aria-selected="false" aria-controls="view-exam">원안지 추출 미리보기</button><button id="tab-info" class="tab" role="tab" aria-selected="false" aria-controls="view-info">정보표 추출 미리보기</button></div>
       <div id="view-findings" role="tabpanel" aria-labelledby="tab-findings"><label class="filter-label" for="filter">표시 항목 <select id="filter"><option>전체</option><option>오류</option><option>확인 필요</option><option>정상</option></select></label><div class="table-scroll"><table><thead><tr><th>구분</th><th>문항</th><th>점검 내용</th><th>판단 이유</th><th>원문 근거</th></tr></thead><tbody id="findings-body"></tbody></table></div></div>
       <div id="view-exam" role="tabpanel" aria-labelledby="tab-exam" hidden><div class="table-scroll"><table><thead><tr><th>문항</th><th>정답</th><th>배점</th><th>추출 수준</th><th>원본 위치 · 읽은 원문</th></tr></thead><tbody id="exam-body"></tbody></table></div></div>
